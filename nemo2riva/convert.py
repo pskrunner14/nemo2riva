@@ -15,6 +15,8 @@ from nemo.utils import logging
 from omegaconf import OmegaConf
 from pytorch_lightning import Trainer
 
+from nemo.collections.asr.models.sortformer_diar_models import SortformerEncLabelModel
+
 from nemo2riva.artifacts import get_artifacts
 from nemo2riva.cookbook import export_model, save_archive
 from nemo2riva.schema import get_import_config, get_subnet, validate_archive
@@ -35,21 +37,23 @@ def Nemo2Riva(args):
 
     logging.info("Restoring NeMo model from '{}'".format(nemo_in))
     # Create a PL trainer object which is required for restoring Megatron models
-    cfg_trainer = TrainerConfig(
-        accelerator='auto',
-        num_nodes=1,
-        devices=1,
-        # Need to set the following two to False as ExpManager will take care of them differently.
-        logger=False,
-        enable_checkpointing=False,
-    )
-    cfg_trainer = OmegaConf.to_container(OmegaConf.create(cfg_trainer))
-    trainer = Trainer(**cfg_trainer)
+    # cfg_trainer = TrainerConfig(
+    #     accelerator='auto',
+    #     num_nodes=1,
+    #     devices=1,
+    #     # Need to set the following two to False as ExpManager will take care of them differently.
+    #     logger=False,
+    #     enable_checkpointing=False,
+    # )
+    # cfg_trainer = OmegaConf.to_container(OmegaConf.create(cfg_trainer))
+    # trainer = Trainer(**cfg_trainer)
 
     try:
         with torch.inference_mode():
             # Restore instance from .nemo file using generic model restore_from
-            model = ModelPT.restore_from(restore_path=nemo_in, trainer=trainer)
+            # model = ModelPT.restore_from(restore_path=nemo_in, trainer=trainer)
+            map_location = torch.device("cuda")
+            model = SortformerEncLabelModel.restore_from(restore_path=nemo_in, map_location=map_location)
     except Exception as e:
         logging.error(
             "Failed to restore model from NeMo file : {}. Please make sure you have the latest NeMo package installed with [all] dependencies.".format(
